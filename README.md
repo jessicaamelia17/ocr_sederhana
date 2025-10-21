@@ -1,4 +1,4 @@
-# JOBSHEET – APLIKASI OCR SEDERHANA  DENGAN  FLUTTER
+# JOBSHEET DAN UTS  – APLIKASI OCR DENGAN  FLUTTER
 
 # Hasil Parktikum OCR Sederhana
 
@@ -7,3 +7,5 @@
 
 ## Scan Teks
 ![alt text](images/02.gif)
+
+# Hasil Implementasi UTS
