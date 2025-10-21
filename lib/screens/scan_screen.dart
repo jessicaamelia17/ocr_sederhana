@@ -16,6 +16,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   CameraController? _controller;
   Future<void>? _initializeControllerFuture;
+  bool _cameraError = false; // untuk mendeteksi error kamera
 
   @override
   void initState() {
@@ -26,11 +27,17 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<void> _initCamera() async {
     try {
       cameras = await availableCameras();
-      _controller = CameraController(cameras[0], ResolutionPreset.medium);
+      _controller = CameraController(cameras.first, ResolutionPreset.medium);
       _initializeControllerFuture = _controller!.initialize();
-      setState(() {});
+      await _initializeControllerFuture; // tunggu sampai benar-benar siap
+      setState(() {
+        _cameraError = false;
+      });
     } catch (e) {
       debugPrint("Error init camera: $e");
+      setState(() {
+        _cameraError = true;
+      });
     }
   }
 
@@ -51,11 +58,15 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _takePicture() async {
-    if (_controller == null) return;
+    if (_controller == null || !_controller!.value.isInitialized) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kamera belum siap, coba lagi.')),
+      );
+      return;
+    }
+
     try {
       await _initializeControllerFuture;
-
-      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -76,21 +87,65 @@ class _ScanScreenState extends State<ScanScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saat mengambil/memproses foto: $e')),
+        const SnackBar(
+          content: Text(
+            'Pemindaian Gagal! Periksa Izin Kamera atau coba lagi.',
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // Jika kamera gagal diinisialisasi
+    if (_cameraError) {
+      return Scaffold(
+        backgroundColor: Colors.grey[900],
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.error_outline, color: Colors.red, size: 64),
+              SizedBox(height: 16),
+              Text(
+                'Pemindaian Gagal! Periksa Izin Kamera atau coba lagi.',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
+    // Jika kamera belum siap sama sekali
+    if (_controller == null || _initializeControllerFuture == null) {
+      return Scaffold(
+        backgroundColor: Colors.grey[900],
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              CircularProgressIndicator(color: Colors.yellow),
+              SizedBox(height: 20),
+              Text(
+                'Memuat Kamera... Harap tunggu.',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Gunakan FutureBuilder untuk memastikan kamera siap
     return FutureBuilder(
       future: _initializeControllerFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            _controller != null &&
+            _controller!.value.isInitialized) {
           return Scaffold(
             appBar: AppBar(title: const Text('Kamera OCR')),
             body: Column(
@@ -112,9 +167,40 @@ class _ScanScreenState extends State<ScanScreen> {
               ],
             ),
           );
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            backgroundColor: Colors.grey[900],
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.error_outline, color: Colors.red, size: 64),
+                  SizedBox(height: 16),
+                  Text(
+                    'Pemindaian Gagal! Periksa Izin Kamera atau coba lagi.',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
         } else {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            backgroundColor: Colors.grey[900],
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(color: Colors.yellow),
+                  SizedBox(height: 20),
+                  Text(
+                    'Memuat Kamera... Harap tunggu.',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ],
+              ),
+            ),
           );
         }
       },
