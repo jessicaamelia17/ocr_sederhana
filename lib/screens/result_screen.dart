@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'home_screen.dart';
 
 class ResultScreen extends StatelessWidget {
   final String ocrText;
@@ -15,10 +16,20 @@ class ResultScreen extends StatelessWidget {
           child: SelectableText(
             ocrText.isEmpty
                 ? 'Tidak ada teks ditemukan.'
-                : ocrText.replaceAll('\n', ' '),
+                : ocrText, // ✅ tampilkan teks apa adanya (baris baru tetap utuh)
             style: const TextStyle(fontSize: 18),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false, // menghapus semua halaman di atasnya
+          );
+        },
+        child: const Icon(Icons.home),
       ),
     );
   }
